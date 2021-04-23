@@ -5,12 +5,12 @@ import pandas as pd
 import glob
 import subprocess
 import time
-import numpy as np
 
 now = time.time()
 here = os.path.abspath(__file__)
 here = os.path.dirname(here)
 
+print(here)
 
 def decoup(file, out_dir):
     """ "
@@ -30,19 +30,16 @@ def decoup(file, out_dir):
     except FileExistsError:
         pass
 
-    os.chdir(out_dir)
-
     print("Découpage de la vidéo en une séquence d'images...")
 
     while success:
 
-        cv2.imwrite("frame%d.jpg" % count, image)
+        cv2.imwrite(str(out_dir) + "/frame%d.jpg" % count, image)
         success, image = vidcap.read()
         print("Read a new frame: ", success)
         count += 1
 
     print("Découpage effectué avec succès !")
-    os.chdir(here)
 
 
 def traiter_img(input_dir, output_dir, remove: bool = True):
@@ -124,17 +121,11 @@ def concatener_csv(input_dir):
     input_dir : dossier contenant les fichiers csv
     """
 
-    # On se déplace jusqu'au dossier cible
-    os.chdir(input_dir)
-
     # Stockage des fichiers csv dans une liste
-    all_files = glob.glob("*.csv")
+    all_files = glob.glob(str(input_dir) + "/*.csv")
 
     # Itération sur la liste de fichiers csv pour effectuer une concaténation
     frame = pd.concat((pd.read_csv(f, index_col=None, header=0) for f in all_files))
-
-    # On revient finalement à l'endroit où se trouve le programme
-    os.chdir(here)
 
     # Création d'un fichier csv contenant la concaténation
     final_name = input_dir + "_concatenated.csv"
@@ -164,36 +155,32 @@ def vid_to_csv(
 
     if trans_vid:
         dir = os.path.join(out_dir, "temp")
-        os.chdir(dir)
-        output = str(video) + "_analysed.mp4"
-        subprocess.call(["ffmpeg", "-i", "frame%d.jpg", output])
+        output = str(dir) + "/" + str(video) + "_analysed.mp4"
+        images = str(dir) + "/frame%d.jpg"
+
+        subprocess.call(["ffmpeg", "-i", images, output])
         shutil.move(output, here + "/" + out_dir)
-        os.chdir(here + "/" + out_dir)
-        os.chdir(here)
 
     if remove_csv:
-        os.chdir(out_dir)
-
         # Suppression des fichiers csv ayant servis pour la concaténation
-        for file in os.listdir():
+        for file in os.listdir(out_dir):
             if file.endswith("csv"):
-                os.remove(file)
+                os.remove(out_dir + "/" + file)
 
-    os.chdir(here)
 
     if trans_vid == False & remove_csv == False & remove_results == False:
-        os.chdir(here)
         shutil.rmtree(out_dir)
 
-    os.chdir(here)
     return frame
 
 
-vid_to_csv(
-    "multi_face.avi",
-    trans_vid=True,
-    remove_csv=True,
-    remove_results=False,
-)
+#vid_to_csv("changeLighting.wmv", trans_vid=True, remove_csv=True, remove_results=False)
 
-print(f"Temps d'exécution du programme : {np.round(time.time() - now, 5)} secondes.")
+vid_to_csv("default.wmv", trans_vid=True, remove_csv=True, remove_results=False)
+
+#vid_to_csv("multi_face.avi", trans_vid=True, remove_csv=True, remove_results=False)
+
+#print(f"Temps d'exécution du programme : {np.round(time.time() - now, 5)} secondes.")
+
+#df = pd.read_csv('ResilEyes/BDD_controle_1/controle_1.csv')
+#print(df)
